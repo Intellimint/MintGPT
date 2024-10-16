@@ -1,0 +1,30 @@
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  /* Remove or adjust overflow property */
+  overflow-x: hidden;  /* Only hide horizontal overflow */
+}
+
+.App {
+  text-align: center;
+  background-color: black;
+  color: white;
+  height: 100vh;
+  display: flex;
+  flex-direction: column; /* Ensure column layout */
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.ChatContainer {
+  width: 100%;
+  max-width: 600px;
+  height: 100%; /* Adjust to full height of parent */
+  overflow-y: auto;
+  padding: 20px;
+  background-color: #2D2D2D;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column; /* Column layout to avoid overflow issues */
+}

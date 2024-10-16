@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import styled from 'styled-components';
 import axios from 'axios';
 import EnhancedMessage from './MessageHelper';
@@ -26,42 +26,78 @@ const InputWrapper = styled.div`
   background-color: ${props => props.theme.colors.inputBackground};
 `;
 
-const Input = styled.input`
+const TextArea = styled.textarea`
   flex-grow: 1;
   padding: 10px;
   border: none;
-  border-radius: 4px;
+  border-radius: 15px;
   background-color: ${props => props.theme.colors.secondary};
   color: ${props => props.theme.colors.text};
+  resize: none;
+  min-height: 20px;
+  max-height: 200px;
+  overflow-y: auto;
+  font-family: Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+
+  &:focus {
+    outline: none;
+  }
 `;
 
 const SendButton = styled.button`
   margin-left: 10px;
   padding: 10px 20px;
   border: none;
-  border-radius: 4px;
+  border-radius: 20px;
   background-color: ${props => props.theme.colors.primary};
   color: ${props => props.theme.colors.background};
   cursor: pointer;
+  align-self: flex-end;
 `;
 
-const ChatWindow = () => {
-  const [messages, setMessages] = useState([]);
+const ChatWindow = ({ initialMessages = [], onMessagesUpdate = () => {} }) => {
+  const [messages, setMessages] = useState(initialMessages || []);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [sessionId, setSessionId] = useState(null);
   const messagesEndRef = useRef(null);
+  const textAreaRef = useRef(null);
+
+  useEffect(() => {
+    console.log('Initial messages:', initialMessages);
+    setMessages(initialMessages || []);
+  }, [initialMessages]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  useEffect(() => {
+    if (textAreaRef.current) {
+      textAreaRef.current.style.height = 'auto';
+      textAreaRef.current.style.height = `${Math.min(textAreaRef.current.scrollHeight, 200)}px`;
+    }
+  }, [inputMessage]);
+
+  const updateMessages = useCallback((newMessages) => {
+    console.log('Updating messages:', newMessages);
+    onMessagesUpdate(newMessages);
+  }, [onMessagesUpdate]);
+
+  useEffect(() => {
+    updateMessages(messages);
+  }, [messages, updateMessages]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  useEffect(scrollToBottom, [messages]);
-
   const sendMessageToAI = async (message) => {
     try {
       setIsLoading(true);
-      const response = await axios.post('http://localhost:8000/chat', { 
+      const response = await axios.post('http://localhost:8000/chat', {
         message,
         session_id: sessionId
       });
@@ -79,14 +115,29 @@ const ChatWindow = () => {
     e.preventDefault();
     if (inputMessage.trim() && !isLoading) {
       const userMessage = { role: 'user', content: inputMessage };
-      setMessages(prevMessages => [...prevMessages, userMessage]);
+      setMessages(prevMessages => {
+        const newMessages = [...prevMessages, userMessage];
+        console.log('New messages after user input:', newMessages);
+        return newMessages;
+      });
       setInputMessage('');
       setIsLoading(true);
 
       const aiResponse = await sendMessageToAI(inputMessage);
       const aiMessage = { role: 'assistant', content: aiResponse };
-      setMessages(prevMessages => [...prevMessages, aiMessage]);
+      setMessages(prevMessages => {
+        const newMessages = [...prevMessages, aiMessage];
+        console.log('New messages after AI response:', newMessages);
+        return newMessages;
+      });
       setIsLoading(false);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage(e);
     }
   };
 
@@ -104,18 +155,17 @@ const ChatWindow = () => {
         <div ref={messagesEndRef} />
       </MessagesWrapper>
       <InputWrapper>
-        <form onSubmit={handleSendMessage} style={{ display: 'flex', width: '100%' }}>
-          <Input
-            type="text"
-            value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
-            placeholder="Type your message..."
-            disabled={isLoading}
-          />
-          <SendButton type="submit" disabled={isLoading}>
-            Send
-          </SendButton>
-        </form>
+        <TextArea
+          ref={textAreaRef}
+          value={inputMessage}
+          onChange={(e) => setInputMessage(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Type your message... (Shift+Enter for new line)"
+          disabled={isLoading}
+        />
+        <SendButton onClick={handleSendMessage} disabled={isLoading}>
+          Send
+        </SendButton>
       </InputWrapper>
     </ChatWindowWrapper>
   );

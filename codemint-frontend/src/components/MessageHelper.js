@@ -1,5 +1,6 @@
 import React, { memo, useState } from 'react';
 import styled, { ThemeProvider } from 'styled-components';
+import { Copy, Check, ThumbsUp, ThumbsDown } from 'react-feather';
 import Prism from 'prismjs';
 import 'prismjs/themes/prism-tomorrow.css';
 import 'prismjs/components/prism-python';
@@ -63,6 +64,7 @@ const CodeBlock = styled.pre`
   }
 `;
 
+// Update the CopyButton styled component to use Feather icons
 const CopyButton = styled.button`
   position: absolute;
   top: 5px;
@@ -72,10 +74,13 @@ const CopyButton = styled.button`
   color: ${props => props.theme.colors.text};
   cursor: pointer;
   font-size: 0.8rem;
-  padding: 5px;
+  padding: 5px 8px;
   border-radius: 4px;
   opacity: 0.7;
   transition: opacity 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 
   &:hover {
     opacity: 1;
@@ -94,21 +99,26 @@ const ActionButton = styled.button`
   border: none;
   cursor: pointer;
   margin-left: 10px;
-  font-size: 16px;
   color: ${props => props.theme.colors.text};
   opacity: 0.7;
   transition: opacity 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   &:hover {
     opacity: 1;
   }
 `;
 
-// ResponseActions component with removed pop-up functionality
+// Updated ResponseActions component with Feather icons
 const ResponseActions = ({ content }) => {
+  const [isCopied, setIsCopied] = useState(false);
+
   const handleCopy = () => {
     navigator.clipboard.writeText(content);
-    // Removed the alert
+    setIsCopied(true);
+    setTimeout(() => setIsCopied(false), 2000);
   };
 
   const handleThumbsUp = () => {
@@ -124,13 +134,13 @@ const ResponseActions = ({ content }) => {
   return (
     <ActionsWrapper>
       <ActionButton onClick={handleCopy} title="Copy full response">
-        📋
+        {isCopied ? <Check size={16} /> : <Copy size={16} />}
       </ActionButton>
       <ActionButton onClick={handleThumbsUp} title="Thumbs up">
-        👍
+        <ThumbsUp size={16} />
       </ActionButton>
       <ActionButton onClick={handleThumbsDown} title="Thumbs down">
-        👎
+        <ThumbsDown size={16} />
       </ActionButton>
     </ActionsWrapper>
   );
@@ -144,7 +154,6 @@ const EnhancedMessage = memo(({ content, isUser }) => {
     navigator.clipboard.writeText(text);
     setCopiedIndex(index);
     setTimeout(() => setCopiedIndex(null), 2000);
-    // Removed the alert
   };
 
   const formatContent = (text) => {
@@ -177,7 +186,17 @@ const EnhancedMessage = memo(({ content, isUser }) => {
       parts.push(
         <CodeBlockWrapper key={match.index}>
           <CopyButton onClick={() => copyToClipboard(code, codeBlockIndex)}>
-            {copiedIndex === codeBlockIndex ? "✅ Copied" : "📋 Copy"}
+            {copiedIndex === codeBlockIndex ? (
+              <>
+                <Check size={14} />
+                Copied
+              </>
+            ) : (
+              <>
+                <Copy size={14} />
+                Copy
+              </>
+            )}
           </CopyButton>
           <CodeBlock className={`language-${language}`}>
             <code dangerouslySetInnerHTML={{ __html: highlightedCode }} />
